@@ -66,7 +66,7 @@ def ask_question(message):
     msg = bot.send_message(message.chat.id, "✍️ Напишите ваш вопрос:")
     bot.register_next_step_handler(msg, ask_ai)
 
-# Основная логика запроса к ИИ
+# Основная логика запроса к ИИ (исправленная)
 def ask_ai(message):
     user_text = message.text
     
@@ -77,20 +77,66 @@ def ask_ai(message):
         "Content-Type": "application/json"
     }
     
+    # Используем стабильную бесплатную модель
     data = {
-        "model": "openai/gpt-3.5-turbo",
+        "model": "mistralai/mistral-7b-instruct:free",
         "messages": [{"role": "user", "content": user_text}]
     }
     
     try:
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data, timeout=30)
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=data,
+            timeout=45
+        )
         result = response.json()
+        
+        # Проверяем на наличие ошибки в ответе
+        if 'error' in result:
+            error_msg = result['error'].get('message', 'Неизвестная ошибка API')
+            bot.send_message(
+                message.chat.id,
+                f"❌ Ошибка API: {error_msg}\nПопробуйте позже.",
+                reply_markup=get_main_keyboard()
+            )
+            return
+        
+        # Проверяем наличие поля choices
+        if 'choices' not in result or len(result['choices']) == 0:
+            bot.send_message(
+                message.chat.id,
+                "❌ Модель вернула пустой ответ. Попробуйте задать вопрос иначе.",
+                reply_markup=get_main_keyboard()
+            )
+            return
+        
         answer = result["choices"][0]["message"]["content"]
         bot.send_message(message.chat.id, answer, reply_markup=get_main_keyboard())
+        
+    except requests.exceptions.Timeout:
+        bot.send_message(
+            message.chat.id,
+            "❌ Превышено время ожидания. Попробуйте позже.",
+            reply_markup=get_main_keyboard()
+        )
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Ошибка: {e}\nПопробуйте позже.", reply_markup=get_main_keyboard())
+        error_text = str(e)
+        # Если ошибка связана с 'choices', даём понятное пояснение
+        if "choices" in error_text:
+            bot.send_message(
+                message.chat.id,
+                "❌ Модель временно недоступна. Попробуйте через минуту.\n\nЕсли ошибка повторяется, напишите /start",
+                reply_markup=get_main_keyboard()
+            )
+        else:
+            bot.send_message(
+                message.chat.id,
+                f"❌ Ошибка: {error_text}\nПопробуйте позже.",
+                reply_markup=get_main_keyboard()
+            )
 
-# Обработчик всех остальных текстовых сообщений (как запасной вариант)
+# Обработчик всех остальных текстовых сообщений
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
     ask_ai(message)
@@ -98,4 +144,4 @@ def echo_all(message):
 # Запуск бота
 if __name__ == "__main__":
     print("🤖 Бот запущен...")
-    bot.infinity_polling()
+    bot.infinity_polling(skip_pending=True)
