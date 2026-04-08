@@ -1,12 +1,28 @@
 import os
 import requests
+import threading
+from flask import Flask
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ========== ВАШИ ТОКЕНЫ (ВСТАВЬТЕ СВОИ) ==========
+# ========== ВАШИ ТОКЕНЫ ==========
 TELEGRAM_TOKEN = "8738211573:AAE1r3BEW6zdRR9JK8R2LwQf_NlgyBfiiUQ"
 OPENROUTER_KEY = "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"
-# ================================================
+# =================================
+
+# Создаём веб-сервер для пингов
+web_app = Flask(__name__)
+
+@web_app.route('/')
+@web_app.route('/health')
+def health():
+    return "OK", 200
+
+def run_web():
+    web_app.run(host='0.0.0.0', port=10000)
+
+# Запускаем веб-сервер в отдельном потоке
+threading.Thread(target=run_web, daemon=True).start()
 
 # Клавиатура с кнопками
 def get_main_keyboard():
