@@ -3,9 +3,10 @@ import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Токены из переменных окружения Render
-TELEGRAM_TOKEN = os.environ.get("8738211573:AAE1r3BEW6zdRR9JK8R2LwQf_NlgyBfiiUQ")
-OPENROUTER_KEY = os.environ.get("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")
+# ========== ВАШИ ТОКЕНЫ (ВСТАВЬТЕ СВОИ) ==========
+TELEGRAM_TOKEN = "8738211573:AAE1r3BEW6zdRR9JK8R2LwQf_NlgyBfiiUQ"
+OPENROUTER_KEY = "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"
+# ================================================
 
 # Клавиатура с кнопками
 def get_main_keyboard():
@@ -60,7 +61,7 @@ async def ask_ai(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Ошибка: {e}\nПопробуйте позже.", reply_markup=get_main_keyboard())
 
-# Запуск
+# Запуск бота
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
